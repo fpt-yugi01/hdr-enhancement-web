@@ -66,11 +66,11 @@ services:
     container_name: hdr_django
     environment:
       - DEBUG=${DEBUG}
-      - DATABASE_URL=postgresql://hdr_user:hdr_password@postgres:5432/hdr_enhancement
-      - REDIS_URL=redis://redis:6379/0
-      - LDAP_SERVER_URI=ldap://openldap:389
-      - LDAP_BIND_DN=cn=admin,dc=hdr,dc=local
-      - LDAP_BIND_PASSWORD=admin_password
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - LDAP_SERVER_URI=${LDAP_SERVER_URI}
+      - LDAP_BIND_DN=${LDAP_BIND_DN}
+      - LDAP_BIND_PASSWORD=${LDAP_BIND_PASSWORD}
       - LDAP_USER_DN_TEMPLATE=uid=%(user)s,ou=people,dc=hdr,dc=local
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
@@ -94,8 +94,8 @@ services:
     container_name: hdr_celery_worker
     command: ["sh", "-c", "sleep 30 && celery -A hdr_project worker -l info --concurrency=2"]
     environment:
-      - DATABASE_URL=postgresql://hdr_user:hdr_password@postgres:5432/hdr_enhancement
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
     volumes:
       - ./media:/app/media
       - ./models:/app/models
