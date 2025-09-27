@@ -65,7 +65,7 @@ services:
     build: .
     container_name: hdr_django
     environment:
-      - DEBUG=False
+      - DEBUG=${DEBUG}
       - DATABASE_URL=postgresql://hdr_user:hdr_password@postgres:5432/hdr_enhancement
       - REDIS_URL=redis://redis:6379/0
       - LDAP_SERVER_URI=ldap://openldap:389
