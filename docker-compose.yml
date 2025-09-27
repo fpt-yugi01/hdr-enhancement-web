@@ -1,0 +1,142 @@
+services:
+  # OpenLDAP Server
+  openldap:
+    image: osixia/openldap
+    container_name: hdr_openldap
+    environment:
+      LDAP_ORGANISATION: "HDR Enhancement"
+      LDAP_DOMAIN: "hdr.local"
+      LDAP_ADMIN_PASSWORD: "admin_password"
+      LDAP_CONFIG_PASSWORD: "config_password"
+      LDAP_READONLY_USER: "true"
+      LDAP_READONLY_USER_USERNAME: "readonly"
+      LDAP_READONLY_USER_PASSWORD: "readonly_password"
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+    ports:
+      - "389:389"
+      - "636:636"
+    networks:
+      - hdr_network
+
+  # LDAP Admin Interface
+  phpldapadmin:
+    image: osixia/phpldapadmin
+    container_name: hdr_phpldapadmin
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: openldap
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - "8080:80"
+    depends_on:
+      - openldap
+    networks:
+      - hdr_network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:17
+    container_name: hdr_postgres
+    environment:
+      POSTGRES_DB: hdr_enhancement
+      POSTGRES_USER: hdr_user
+      POSTGRES_PASSWORD: hdr_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - hdr_network
+
+  # Redis for Celery
+  redis:
+    image: redis:alpine
+    container_name: hdr_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hdr_network
+
+  # Django Web Application
+  django_app:
+    build: .
+    container_name: hdr_django
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://hdr_user:hdr_password@postgres:5432/hdr_enhancement
+      - REDIS_URL=redis://redis:6379/0
+      - LDAP_SERVER_URI=ldap://openldap:389
+      - LDAP_BIND_DN=cn=admin,dc=hdr,dc=local
+      - LDAP_BIND_PASSWORD=admin_password
+      - LDAP_USER_DN_TEMPLATE=uid=%(user)s,ou=people,dc=hdr,dc=local
+    volumes:
+      - ./media:/app/media
+      - ./models:/app/models
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - openldap
+    networks:
+      - hdr_network
+
+  # Celery Worker
+  celery_worker:
+    build: .
+    container_name: hdr_celery_worker
+    command: celery -A hdr_project worker -l info --concurrency=2
+    environment:
+      - DATABASE_URL=postgresql://hdr_user:hdr_password@postgres:5432/hdr_enhancement
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./media:/app/media
+      - ./models:/app/models
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - hdr_network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: hdr_nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./media:/app/media
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - django_app
+    networks:
+      - hdr_network
+
+  # Cloudflared Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: hdr_cloudflared
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - nginx
+    networks:
+      - hdr_network
+    restart: unless-stopped
+
+volumes:
+  ldap_data:
+  ldap_config:
+  postgres_data:
+  redis_data:
+
+networks:
+  hdr_network:
+    driver: bridge

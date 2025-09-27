@@ -1,0 +1,38 @@
+# Django and web framework
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+gunicorn==21.2.0
+
+# Database
+psycopg2-binary==2.9.7
+dj-database-url==2.1.0
+
+# LDAP Authentication
+django-auth-ldap==4.6.0
+python-ldap==3.4.3
+
+# Task Queue
+celery==5.3.4
+redis==5.0.1
+
+# Image processing
+Pillow==10.0.1
+opencv-python==4.8.1.78
+numpy==1.24.3
+
+# Deep Learning (will be overridden by torch installation in Dockerfile)
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# Utilities
+python-decouple==3.8
+requests==2.31.0
+tqdm==4.66.1
+
+# File handling
+python-multipart==0.0.6
+
+# Logging
+structlog==23.1.0

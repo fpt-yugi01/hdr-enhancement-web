@@ -1,0 +1,12 @@
+dn: ou=people,dc=hdr,dc=local
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=hdr,dc=local
+objectClass: organizationalUnit
+ou: groups
+
+dn: cn=hdr_users,ou=groups,dc=hdr,dc=local
+objectClass: groupOfNames
+cn: hdr_users
+member: uid=dummy,ou=people,dc=hdr,dc=local
