@@ -1,3 +1,4 @@
+# Save as ldap_structure.ldif
 dn: ou=people,dc=hdr,dc=local
 objectClass: organizationalUnit
 ou: people
@@ -10,3 +11,18 @@ dn: cn=hdr_users,ou=groups,dc=hdr,dc=local
 objectClass: groupOfNames
 cn: hdr_users
 member: uid=dummy,ou=people,dc=hdr,dc=local
+
+# Example user
+dn: uid=john.doe,ou=people,dc=hdr,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: john.doe
+cn: John Doe
+sn: Doe
+givenName: John
+mail: john.doe@company.com
+userPassword: {SSHA}hashedpassword
+uidNumber: 1000
+gidNumber: 1000
+homeDirectory: /home/john.doe
+loginShell: /bin/bash
