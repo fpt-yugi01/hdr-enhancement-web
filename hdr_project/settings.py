@@ -54,9 +54,24 @@ INSTALLED_APPS = [
     'hdr_app',  # Our main application
 ]
 
+# Security Headers and CSP
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+
+# Content Security Policy - Allow Alpine.js and inline scripts
+CSP_DEFAULT_SRC = ["'self'"]
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com"]
+CSP_STYLE_SRC = ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"]
+CSP_IMG_SRC = ["'self'", "data:", "blob:"]
+CSP_CONNECT_SRC = ["'self'"]
+CSP_FONT_SRC = ["'self'", "https://cdnjs.cloudflare.com"]
+
+# Add Content-Security-Policy header
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'hdr_app.middleware.CSPMiddleware',  # Custom CSP middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
