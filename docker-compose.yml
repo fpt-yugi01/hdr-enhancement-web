@@ -72,6 +72,8 @@ services:
       - LDAP_BIND_DN=cn=admin,dc=hdr,dc=local
       - LDAP_BIND_PASSWORD=admin_password
       - LDAP_USER_DN_TEMPLATE=uid=%(user)s,ou=people,dc=hdr,dc=local
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
     volumes:
       - ./media:/app/media
       - ./models:/app/models
