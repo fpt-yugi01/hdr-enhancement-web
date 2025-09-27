@@ -84,12 +84,13 @@ services:
       - openldap
     networks:
       - hdr_network
+    restart: unless-stopped
 
   # Celery Worker
   celery_worker:
     build: .
     container_name: hdr_celery_worker
-    command: celery -A hdr_project worker -l info --concurrency=2
+    command: ["sh", "-c", "sleep 30 && celery -A hdr_project worker -l info --concurrency=2"]
     environment:
       - DATABASE_URL=postgresql://hdr_user:hdr_password@postgres:5432/hdr_enhancement
       - REDIS_URL=redis://redis:6379/0
@@ -100,8 +101,10 @@ services:
     depends_on:
       - postgres
       - redis
+      - django_app
     networks:
       - hdr_network
+    restart: unless-stopped
 
   # Nginx Reverse Proxy
   nginx:

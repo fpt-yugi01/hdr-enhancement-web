@@ -51,12 +51,12 @@ elif [ "$1" = "celery-beat" ]; then
     # Start Celery beat scheduler
     exec celery -A hdr_project beat -l info
 else
-    # Start Django with Gunicorn
+    # Start Django with Gunicorn (changed from gevent to sync worker)
     exec gunicorn hdr_project.wsgi:application \
         --bind 0.0.0.0:8000 \
         --workers 3 \
-        --worker-class gevent \
-        --worker-connections 1000 \
+        --worker-class sync \
+        --timeout 300 \
         --max-requests 1000 \
         --max-requests-jitter 100 \
         --preload \
