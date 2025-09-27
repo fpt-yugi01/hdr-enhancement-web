@@ -39,7 +39,7 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
 additional_origins = config('CSRF_TRUSTED_ORIGINS', default='')
 if additional_origins:
     CSRF_TRUSTED_ORIGINS.extend(additional_origins.split(','))
-    CORS_ALLOW_ALL_ORIGINS.extend(additional_origins.split(','))
+    CORS_ALLOWED_ORIGINS.extend(additional_origins.split(','))
 
 # Application definition
 INSTALLED_APPS = [
