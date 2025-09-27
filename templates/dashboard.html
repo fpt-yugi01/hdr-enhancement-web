@@ -61,7 +61,7 @@
             </svg>
             <p class="text-lg text-gray-600 mb-2">Drag and drop your image here, or</p>
             <input type="file" id="imageInput" accept="image/*" x-on:change="handleFileSelect($event)" class="hidden">
-            <button x-on:click="$('#imageInput').click()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
+            <button x-on:click="document.getElementById('imageInput').click()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
                 Choose File
             </button>
             <p class="text-sm text-gray-500 mt-2">Supported formats: JPEG, PNG, TIFF (Max: 50MB)</p>
@@ -99,21 +99,21 @@
                     <template x-for="task in tasks" :key="task.id">
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-sm text-gray-900" x-text="task.original_filename"></span>
+                                <span class="text-sm text-gray-900" x-text="task.original_filename || 'Unknown'"></span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full"
-                                      x-bind:class="getStatusClass(task.status)"
-                                      x-text="task.status"></span>
+                                    x-bind:class="getStatusClass(task.status)"
+                                    x-text="task.status || 'Unknown'"></span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="w-full bg-gray-200 rounded-full h-2">
                                     <div class="bg-blue-600 h-2 rounded-full" 
-                                         x-bind:style="'width: ' + task.progress + '%'"></div>
+                                        x-bind:style="'width: ' + (task.progress || 0) + '%'"></div>
                                 </div>
-                                <span class="text-xs text-gray-600" x-text="task.progress + '%'"></span>
+                                <span class="text-xs text-gray-600" x-text="(task.progress || 0) + '%'"></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(task.created_at)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(task.created_at || new Date())"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button x-show="task.status === 'completed'" 
                                         x-on:click="downloadResult(task.id)"
@@ -126,6 +126,12 @@
                             </td>
                         </tr>
                     </template>
+                    <!-- Show message when no tasks -->
+                    <tr x-show="tasks.length === 0">
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                            No tasks yet. Upload an image to get started!
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -135,7 +141,7 @@
 <script>
 function hdrApp() {
     return {
-        tasks: {{ recent_tasks|safe }},
+        tasks: [],  // Khởi tạo mảng rỗng thay vì {{ recent_tasks|safe }}
         uploading: false,
         uploadProgress: 0,
         isDragging: false,
@@ -197,6 +203,10 @@ function hdrApp() {
             .then(data => {
                 this.tasks = data.tasks || [];
                 this.processingCount = this.tasks.filter(t => t.status === 'processing' || t.status === 'pending').length;
+            })
+            .catch(error => {
+                console.error('Failed to load tasks:', error);
+                this.tasks = [];
             });
         },
         
@@ -208,6 +218,9 @@ function hdrApp() {
                 if (index !== -1) {
                     this.tasks[index] = data;
                 }
+            })
+            .catch(error => {
+                console.error('Failed to refresh task:', error);
             });
         },
         
@@ -238,7 +251,11 @@ function hdrApp() {
         },
         
         getCsrfToken() {
-            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            return cookieValue || '';
         }
     }
 }

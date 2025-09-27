@@ -151,9 +151,21 @@ def dashboard(request):
     """Main dashboard view"""
     recent_tasks = HDREnhancementTask.objects.filter(user=request.user).order_by('-created_at')[:5]
     
+    # Convert tasks to JSON-serializable format
+    tasks_data = []
+    for task in recent_tasks:
+        tasks_data.append({
+            'id': task.id,
+            'original_filename': task.original_filename,
+            'status': task.status,
+            'progress': task.progress,
+            'created_at': task.created_at.isoformat() if task.created_at else '',
+            'updated_at': task.updated_at.isoformat() if task.updated_at else '',
+        })
+    
     context = {
         'user': request.user,
-        'recent_tasks': recent_tasks,
+        'recent_tasks_json': json.dumps(tasks_data),  # JSON data for Alpine.js
         'total_tasks': HDREnhancementTask.objects.filter(user=request.user).count(),
         'completed_tasks': HDREnhancementTask.objects.filter(user=request.user, status='completed').count(),
     }
