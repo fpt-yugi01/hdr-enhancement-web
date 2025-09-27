@@ -20,12 +20,26 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost',
     'http://127.0.0.1',
     'http://localhost:8000',
+    'https://localhost:8000',
 ]
+
+
+# CORS settings (adjust for production)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "https://localhost:8000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
 
 # Add any additional domains from environment
 additional_origins = config('CSRF_TRUSTED_ORIGINS', default='')
 if additional_origins:
     CSRF_TRUSTED_ORIGINS.extend(additional_origins.split(','))
+    CORS_ALLOW_ALL_ORIGINS.extend(additional_origins.split(','))
 
 # Application definition
 INSTALLED_APPS = [
@@ -141,18 +155,6 @@ HDR_MODEL_WEIGHTS = os.path.join(HDR_MODEL_PATH, 'diffhdr_weights.pth')
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024
-
-# CORS settings (adjust for production)
-CORS_ALLOWED_ORIGINS = [
-    "https://hdr.brandlaw.vn",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "https://localhost:8000",
-]
-
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
 
 # REST Framework settings
 REST_FRAMEWORK = {
