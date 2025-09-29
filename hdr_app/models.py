@@ -9,6 +9,7 @@ class HDREnhancementTask(models.Model):
         ('processing', 'Processing'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'), 
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='hdr_tasks')

@@ -13,7 +13,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from .models import HDREnhancementTask
+from django.utils import timezone
+from .models import HDREnhancementTask, UserProfile
 from .tasks import process_hdr_enhancement
 import json
 
@@ -177,3 +178,134 @@ def index(request):
     if request.user.is_authenticated:
         return dashboard(request)
     return render(request, 'index.html')
+
+class HDRCancelView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, task_id):
+        """Cancel HDR enhancement task"""
+        try:
+            task = get_object_or_404(HDREnhancementTask, id=task_id, user=request.user)
+            
+            # Only allow canceling pending or processing tasks
+            if task.status not in ['pending', 'processing']:
+                return Response({'error': 'Task cannot be cancelled'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+            
+            # Cancel Celery task if it exists
+            if task.celery_task_id:
+                from celery import current_app
+                current_app.control.revoke(task.celery_task_id, terminate=True)
+            
+            # Update task status
+            task.status = 'cancelled'
+            task.error_message = 'Task cancelled by user'
+            task.save()
+            
+            return Response({'success': True, 'message': 'Task cancelled successfully'})
+            
+        except Exception as e:
+            return Response({'error': str(e)}, 
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get user profile information"""
+        try:
+            # Get or create user profile
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            
+            # Get usage statistics
+            now = timezone.now()
+            today = now.date()
+            this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            daily_usage = HDREnhancementTask.objects.filter(
+                user=request.user,
+                created_at__date=today
+            ).count()
+            
+            monthly_usage = HDREnhancementTask.objects.filter(
+                user=request.user,
+                created_at__gte=this_month_start
+            ).count()
+            
+            # Recent activity
+            recent_tasks = HDREnhancementTask.objects.filter(
+                user=request.user
+            ).order_by('-created_at')[:10]
+            
+            recent_tasks_data = []
+            for task in recent_tasks:
+                recent_tasks_data.append({
+                    'id': task.id,
+                    'original_filename': task.original_filename,
+                    'status': task.status,
+                    'created_at': task.created_at.isoformat(),
+                    'processing_time': task.processing_time,
+                })
+            
+            data = {
+                'user': {
+                    'username': request.user.username,
+                    'email': request.user.email,
+                    'first_name': request.user.first_name,
+                    'last_name': request.user.last_name,
+                    'date_joined': request.user.date_joined.isoformat(),
+                    'last_login': request.user.last_login.isoformat() if request.user.last_login else None,
+                },
+                'profile': {
+                    'employee_id': profile.employee_id,
+                    'department': profile.department,
+                    'daily_limit': profile.daily_limit,
+                    'monthly_limit': profile.monthly_limit,
+                    'preferred_output_format': profile.preferred_output_format,
+                    'preferred_quality': profile.preferred_quality,
+                },
+                'statistics': {
+                    'total_processed': profile.total_processed,
+                    'total_successful': profile.total_successful,
+                    'total_failed': profile.total_failed,
+                    'daily_usage': daily_usage,
+                    'monthly_usage': monthly_usage,
+                    'daily_remaining': max(0, profile.daily_limit - daily_usage),
+                    'monthly_remaining': max(0, profile.monthly_limit - monthly_usage),
+                    'success_rate': round((profile.total_successful / max(1, profile.total_processed)) * 100, 2),
+                },
+                'recent_tasks': recent_tasks_data
+            }
+            
+            return Response(data)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, 
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        """Update user profile preferences"""
+        try:
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            
+            # Update profile fields
+            if 'preferred_output_format' in request.data:
+                profile.preferred_output_format = request.data['preferred_output_format']
+            
+            if 'preferred_quality' in request.data:
+                quality = int(request.data['preferred_quality'])
+                if 1 <= quality <= 100:
+                    profile.preferred_quality = quality
+            
+            profile.save()
+            
+            return Response({'success': True, 'message': 'Profile updated successfully'})
+            
+        except Exception as e:
+            return Response({'error': str(e)}, 
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@login_required
+def profile(request):
+    """User profile page"""
+    return render(request, 'profile.html')

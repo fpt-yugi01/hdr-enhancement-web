@@ -97,9 +97,18 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <template x-for="task in tasks" :key="task.id">
-                        <tr>
+                        <tr x-bind:class="task.status === 'processing' ? 'bg-blue-50' : ''">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-sm text-gray-900" x-text="task.original_filename || 'Unknown'"></span>
+                                <div class="flex items-center">
+                                    <span class="text-sm text-gray-900" x-text="task.original_filename || 'Unknown'"></span>
+                                    <!-- Processing indicator -->
+                                    <div x-show="task.status === 'processing'" class="ml-2">
+                                        <svg class="animate-spin h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full"
@@ -107,29 +116,67 @@
                                     x-text="task.status || 'Unknown'"></span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="w-full bg-gray-200 rounded-full h-2">
-                                    <div class="bg-blue-600 h-2 rounded-full" 
-                                        x-bind:style="'width: ' + (task.progress || 0) + '%'"></div>
+                                <div class="w-full">
+                                    <!-- Progress bar -->
+                                    <div class="w-full bg-gray-200 rounded-full h-3 mb-1">
+                                        <div class="bg-blue-600 h-3 rounded-full transition-all duration-300" 
+                                            x-bind:style="'width: ' + (task.progress || 0) + '%'"></div>
+                                    </div>
+                                    <!-- Progress text with auto-update indicator -->
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs text-gray-600" x-text="(task.progress || 0) + '%'"></span>
+                                        <span x-show="task.status === 'processing'" class="text-xs text-blue-500 animate-pulse">
+                                            Auto-updating...
+                                        </span>
+                                    </div>
                                 </div>
-                                <span class="text-xs text-gray-600" x-text="(task.progress || 0) + '%'"></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(task.created_at || new Date())"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" 
+                                x-text="formatDate(task.created_at || new Date())"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button x-show="task.status === 'completed'" 
-                                        x-on:click="downloadResult(task.id)"
-                                        class="text-green-600 hover:text-green-900 mr-3">
-                                    Download
-                                </button>
-                                <button x-on:click="refreshTask(task.id)" class="text-blue-600 hover:text-blue-900">
-                                    Refresh
-                                </button>
+                                <div class="flex space-x-2">
+                                    <!-- Download button -->
+                                    <button x-show="task.status === 'completed'" 
+                                            x-on:click="downloadResult(task.id)"
+                                            class="text-green-600 hover:text-green-900 px-2 py-1 rounded border border-green-200 hover:bg-green-50">
+                                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                                        </svg>
+                                        Download
+                                    </button>
+                                    
+                                    <!-- Cancel button (only for pending/processing) -->
+                                    <button x-show="task.status === 'pending' || task.status === 'processing'" 
+                                            x-on:click="cancelTask(task.id)"
+                                            class="text-red-600 hover:text-red-900 px-2 py-1 rounded border border-red-200 hover:bg-red-50">
+                                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                        Cancel
+                                    </button>
+                                    
+                                    <!-- Refresh button (manual) -->
+                                    <button x-on:click="refreshTask(task.id)" 
+                                            class="text-blue-600 hover:text-blue-900 px-2 py-1 rounded border border-blue-200 hover:bg-blue-50">
+                                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                        </svg>
+                                        Refresh
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </template>
                     <!-- Show message when no tasks -->
                     <tr x-show="tasks.length === 0">
                         <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                            No tasks yet. Upload an image to get started!
+                            <div class="py-8">
+                                <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p class="text-lg font-medium text-gray-900 mb-2">No tasks yet</p>
+                                <p class="text-gray-500">Upload an image to get started!</p>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -141,7 +188,7 @@
 <script>
 function hdrApp() {
     return {
-        tasks: [],  // Khởi tạo mảng rỗng thay vì {{ recent_tasks|safe }}
+        tasks: [],
         uploading: false,
         uploadProgress: 0,
         isDragging: false,
@@ -229,11 +276,48 @@ function hdrApp() {
         },
         
         startPolling() {
-            setInterval(() => {
-                if (this.processingCount > 0) {
+            this.pollInterval = setInterval(() => {
+                // Always refresh if there are processing tasks
+                const processingTasks = this.tasks.filter(t => 
+                    t.status === 'processing' || t.status === 'pending'
+                );
+                
+                if (processingTasks.length > 0) {
                     this.loadTasks();
                 }
-            }, 5000);
+            }, 2000); // Refresh mỗi 2 giây
+        },
+
+        cancelTask(taskId) {
+            if (confirm('Are you sure you want to cancel this task?')) {
+                fetch(`/api/cancel/${taskId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': this.getCsrfToken(),
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Task cancelled successfully');
+                        this.loadTasks();
+                    } else {
+                        alert('Failed to cancel task: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    alert('Failed to cancel task: ' + error.message);
+                });
+            }
+        },
+
+        // Thêm method để dừng polling khi cần
+        stopPolling() {
+            if (this.pollInterval) {
+                clearInterval(this.pollInterval);
+                this.pollInterval = null;
+            }
         },
         
         getStatusClass(status) {
@@ -241,7 +325,8 @@ function hdrApp() {
                 'pending': 'bg-yellow-100 text-yellow-800',
                 'processing': 'bg-blue-100 text-blue-800',
                 'completed': 'bg-green-100 text-green-800',
-                'failed': 'bg-red-100 text-red-800'
+                'failed': 'bg-red-100 text-red-800',
+                'cancelled': 'bg-gray-100 text-gray-800'  // Thêm dòng này
             };
             return classes[status] || 'bg-gray-100 text-gray-800';
         },
